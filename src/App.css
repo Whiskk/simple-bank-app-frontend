@@ -45,6 +45,13 @@
   gap: 16px;
 }
 
+.login-page {
+  display: grid;
+  min-height: 60vh;
+  place-items: center;
+  text-align: center;
+}
+
 .customers-page {
   text-align: center;
 }
@@ -132,6 +139,10 @@ input:focus-visible {
   margin-bottom: 16px;
 }
 
+.auth-section > h1 {
+  margin-bottom: 20px;
+}
+
 .auth-form {
   display: grid;
   gap: 14px;
@@ -160,6 +171,11 @@ input:focus-visible {
   margin-top: 8px;
   text-decoration: underline;
   text-underline-offset: 3px;
+}
+
+.login-mode-toggle {
+  display: block;
+  margin: 12px auto 0;
 }
 
 .error-message {
