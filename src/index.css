@@ -1,14 +1,14 @@
 :root {
   font-family: system-ui, 'Segoe UI', sans-serif;
-  color: #e5e7eb;
-  background: #000000;
+  color: #000000;
+  background: #999494;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --heading: #f8fafc;
-  --text: #e5e7eb;
+  --heading: #000000;
+  --text: #000000;
   --input-text: #17232d;
   --surface: #ffffff;
   --border: #4b5563;

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import './App.css'
 
 async function readResponse(response) {
@@ -19,6 +19,8 @@ function App() {
   )
   const [token, setToken] = useState(() => sessionStorage.getItem('bankapp-token') || '')
   const [customers, setCustomers] = useState([])
+  const [expandedCustomerId, setExpandedCustomerId] = useState(null)
+  const [accountsByCustomer, setAccountsByCustomer] = useState({})
   const [credentials, setCredentials] = useState({ name: '', username: '', password: '' })
   const [isRegistering, setIsRegistering] = useState(false)
   const [status, setStatus] = useState({ type: 'idle', message: '' })
@@ -112,7 +114,49 @@ function App() {
     sessionStorage.removeItem('bankapp-token')
     setToken('')
     setCustomers([])
+    setExpandedCustomerId(null)
+    setAccountsByCustomer({})
     setStatus({ type: 'idle', message: '' })
+  }
+
+  async function toggleCustomerAccounts(customerId) {
+    if (expandedCustomerId === customerId) {
+      setExpandedCustomerId(null)
+      return
+    }
+
+    setExpandedCustomerId(customerId)
+
+    const existingAccounts = accountsByCustomer[customerId]
+    if (existingAccounts?.status === 'success' || existingAccounts?.status === 'loading') {
+      return
+    }
+
+    setAccountsByCustomer((current) => ({
+      ...current,
+      [customerId]: { status: 'loading', accounts: [], error: '' },
+    }))
+
+    try {
+      const response = await fetch(`/api/accounts?userId=${encodeURIComponent(customerId)}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const accounts = await readResponse(response)
+
+      if (!Array.isArray(accounts)) {
+        throw new Error('The accounts response was not a list.')
+      }
+
+      setAccountsByCustomer((current) => ({
+        ...current,
+        [customerId]: { status: 'success', accounts, error: '' },
+      }))
+    } catch (error) {
+      setAccountsByCustomer((current) => ({
+        ...current,
+        [customerId]: { status: 'error', accounts: [], error: error.message },
+      }))
+    }
   }
 
   return (
@@ -121,6 +165,11 @@ function App() {
         <button className="brand-button" type="button" onClick={() => navigate('/')}>
           Simple Bank
         </button>
+        {page === 'customers' && token && (
+          <button className="text-button header-signout" type="button" onClick={signOut}>
+            Sign out
+          </button>
+        )}
       </header>
 
       {page === 'home' ? (
@@ -137,11 +186,6 @@ function App() {
           </button>
           <div className="page-title-row">
             <h1>Customers</h1>
-            {token && (
-              <button className="text-button" type="button" onClick={signOut}>
-                Sign out
-              </button>
-            )}
           </div>
 
           {token ? (
@@ -158,16 +202,70 @@ function App() {
                       <tr>
                         <th scope="col">Name</th>
                         <th scope="col">Username</th>
-                        <th scope="col">ID</th>
+                        <th scope="col">Accounts</th>
                       </tr>
                     </thead>
                     <tbody>
                       {customers.map((customer) => (
-                        <tr key={customer.id}>
+                        <Fragment key={customer.id}>
+                        <tr>
                           <td>{customer.name}</td>
                           <td>{customer.username || '-'}</td>
-                          <td>{customer.id}</td>
+                          <td>
+                            <button
+                              className="account-toggle"
+                              type="button"
+                              aria-expanded={expandedCustomerId === customer.id}
+                              aria-controls={`customer-accounts-${customer.id}`}
+                              onClick={() => toggleCustomerAccounts(customer.id)}
+                            >
+                              {expandedCustomerId === customer.id ? 'Hide accounts' : 'Show accounts'}
+                            </button>
+                          </td>
                         </tr>
+                        {expandedCustomerId === customer.id && (
+                          <tr className="account-details-row">
+                            <td id={`customer-accounts-${customer.id}`} colSpan={3}>
+                              {accountsByCustomer[customer.id]?.status === 'loading' && (
+                                <p role="status">Loading accounts...</p>
+                              )}
+                              {accountsByCustomer[customer.id]?.status === 'error' && (
+                                <p className="error-message" role="alert">
+                                  {accountsByCustomer[customer.id].error}
+                                </p>
+                              )}
+                              {accountsByCustomer[customer.id]?.status === 'success' &&
+                                accountsByCustomer[customer.id].accounts.length === 0 && (
+                                  <p>No accounts for this customer.</p>
+                                )}
+                              {accountsByCustomer[customer.id]?.status === 'success' &&
+                                accountsByCustomer[customer.id].accounts.length > 0 && (
+                                  <table aria-label={`${customer.name} accounts`}>
+                                    <thead>
+                                      <tr>
+                                        <th scope="col">Account type</th>
+                                        <th scope="col">Current balance</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {accountsByCustomer[customer.id].accounts.map((account) => (
+                                        <tr key={account.id}>
+                                          <td>{account.accountType}</td>
+                                          <td>
+                                            {new Intl.NumberFormat('en-US', {
+                                              style: 'currency',
+                                              currency: 'USD',
+                                            }).format(Number(account.balance))}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                )}
+                            </td>
+                          </tr>
+                        )}
+                        </Fragment>
                       ))}
                     </tbody>
                   </table>
