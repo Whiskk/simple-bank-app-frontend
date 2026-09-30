@@ -1,20 +1,21 @@
 :root {
   font-family: system-ui, 'Segoe UI', sans-serif;
-  color: #35404a;
-  background: #f8fafb;
+  color: #e5e7eb;
+  background: #000000;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --heading: #17232d;
-  --text: #35404a;
+  --heading: #f8fafc;
+  --text: #e5e7eb;
+  --input-text: #17232d;
   --surface: #ffffff;
-  --border: #d7dfe4;
+  --border: #4b5563;
   --button-bg: #176b62;
   --button-border: #145b53;
   --focus: #2b8076;
-  --error: #a52b2b;
+  --error: #ff8b8b;
 }
 
 body {
