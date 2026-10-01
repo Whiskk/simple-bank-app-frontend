@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import './App.css'
 
 const EMPTY_CREDENTIALS = { name: '', username: '', password: '' }
@@ -48,6 +49,9 @@ function App() {
   const [transferAmount, setTransferAmount] = useState('')
   const [transferStatus, setTransferStatus] = useState({ type: 'idle', message: '' })
   const transferDialogRef = useRef(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleteStatus, setDeleteStatus] = useState({ type: 'idle', message: '' })
+  const deleteDialogRef = useRef(null)
   const [credentials, setCredentials] = useState(EMPTY_CREDENTIALS)
   const [loginMode, setLoginMode] = useState(() =>
     window.location.pathname === '/customers' ? 'admin' : 'customer',
@@ -198,6 +202,16 @@ function App() {
     }
   }, [transferSource])
 
+  useEffect(() => {
+    if (!deleteTarget) return
+
+    const dialog = deleteDialogRef.current
+    dialog.showModal()
+    return () => {
+      if (dialog.open) dialog.close()
+    }
+  }, [deleteTarget])
+
   function navigate(path) {
     window.history.pushState({}, '', path)
     setPage(path === '/customers' ? 'customers' : path === '/accounts' ? 'accounts' : 'home')
@@ -274,6 +288,8 @@ function App() {
     setAccountCreateStatus({ type: 'idle', message: '' })
     setTransferSource(null)
     setTransferStatus({ type: 'idle', message: '' })
+    setDeleteTarget(null)
+    setDeleteStatus({ type: 'idle', message: '' })
     setStatus({ type: 'idle', message: '' })
     navigate('/')
   }
@@ -442,6 +458,41 @@ function App() {
     } catch {
       setAccounts([])
       setStatus({ type: 'error', message: 'Transfer completed, but balances could not be refreshed. Reload the page to see them.' })
+    }
+  }
+
+  function closeDeleteDialog() {
+    setDeleteTarget(null)
+    setDeleteStatus({ type: 'idle', message: '' })
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteStatus({ type: 'loading', message: 'Deleting account...' })
+
+    try {
+      const response = await fetch(`/api/accounts/${encodeURIComponent(deleteTarget.account.id)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      await readResponse(response, { 409: 'Account balance must be zero before deletion.' })
+
+      if (deleteTarget.customerId) {
+        setAccountsByCustomer((current) => ({
+          ...current,
+          [deleteTarget.customerId]: {
+            ...current[deleteTarget.customerId],
+            accounts: current[deleteTarget.customerId].accounts.filter(
+              (account) => account.id !== deleteTarget.account.id,
+            ),
+          },
+        }))
+      } else {
+        setAccounts((current) => current.filter((account) => account.id !== deleteTarget.account.id))
+      }
+
+      closeDeleteDialog()
+    } catch (error) {
+      setDeleteStatus({ type: 'error', message: error.message })
     }
   }
 
@@ -617,6 +668,7 @@ function App() {
                     <th scope="col">Account type</th>
                     <th scope="col">Current balance</th>
                     <th scope="col">Transfer</th>
+                    <th scope="col"><span className="sr-only">Delete</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -640,6 +692,23 @@ function App() {
                           onClick={() => openTransferDialog(account)}
                         >
                           Transfer
+                        </button>
+                      </td>
+                      <td>
+                        <button
+                          className="icon-button delete-account-button"
+                          type="button"
+                          disabled={Number(account.balance) !== 0}
+                          aria-label={`Delete ${account.accountType.toLowerCase()} account ending ${account.id.slice(-4)}`}
+                          title={Number(account.balance) === 0
+                            ? 'Delete account'
+                            : 'Account must have a zero balance to delete'}
+                          onClick={() => {
+                            setDeleteStatus({ type: 'idle', message: '' })
+                            setDeleteTarget({ account, customerId: null })
+                          }}
+                        >
+                          <Trash2 size={16} aria-hidden="true" />
                         </button>
                       </td>
                     </tr>
@@ -718,6 +787,7 @@ function App() {
                                       <tr>
                                         <th scope="col">Account type</th>
                                         <th scope="col">Current balance</th>
+                                        <th scope="col"><span className="sr-only">Delete</span></th>
                                       </tr>
                                     </thead>
                                     <tbody>
@@ -729,6 +799,23 @@ function App() {
                                               style: 'currency',
                                               currency: 'USD',
                                             }).format(Number(account.balance))}
+                                          </td>
+                                          <td>
+                                            <button
+                                              className="icon-button delete-account-button"
+                                              type="button"
+                                              disabled={Number(account.balance) !== 0}
+                                              aria-label={`Delete ${customer.name}'s ${account.accountType.toLowerCase()} account ending ${account.id.slice(-4)}`}
+                                              title={Number(account.balance) === 0
+                                                ? 'Delete account'
+                                                : 'Account must have a zero balance to delete'}
+                                              onClick={() => {
+                                                setDeleteStatus({ type: 'idle', message: '' })
+                                                setDeleteTarget({ account, customerId: customer.id })
+                                              }}
+                                            >
+                                              <Trash2 size={16} aria-hidden="true" />
+                                            </button>
                                           </td>
                                         </tr>
                                       ))}
@@ -954,6 +1041,53 @@ function App() {
               </button>
             </div>
           </form>
+        </dialog>
+      )}
+      {deleteTarget && (
+        <dialog
+          className="profile-dialog delete-dialog"
+          ref={deleteDialogRef}
+          aria-labelledby="delete-account-title"
+          onCancel={(event) => {
+            if (deleteStatus.type === 'loading') {
+              event.preventDefault()
+            } else {
+              closeDeleteDialog()
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape' && deleteStatus.type !== 'loading') {
+              event.preventDefault()
+              closeDeleteDialog()
+            }
+          }}
+        >
+          <h2 id="delete-account-title">Delete account?</h2>
+          <p>
+            {deleteTarget.account.accountType} account ending {deleteTarget.account.id.slice(-4)} will be deleted,
+            including its transaction history. This cannot be undone.
+          </p>
+          {deleteStatus.type === 'error' && (
+            <p className="error-message" role="alert">{deleteStatus.message}</p>
+          )}
+          <div className="profile-actions">
+            <button
+              className="primary-button danger-button"
+              type="button"
+              disabled={deleteStatus.type === 'loading'}
+              onClick={handleDeleteAccount}
+            >
+              {deleteStatus.type === 'loading' ? 'Deleting...' : 'Delete account'}
+            </button>
+            <button
+              className="text-button"
+              type="button"
+              disabled={deleteStatus.type === 'loading'}
+              onClick={closeDeleteDialog}
+            >
+              Cancel
+            </button>
+          </div>
         </dialog>
       )}
     </main>

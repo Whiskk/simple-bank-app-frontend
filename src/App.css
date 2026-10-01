@@ -106,6 +106,7 @@ h2 {
 .primary-button:focus-visible,
 .text-button:focus-visible,
 .account-toggle:focus-visible,
+.icon-button:focus-visible,
 input:focus-visible,
 select:focus-visible {
   outline: 2px solid var(--focus);
@@ -143,6 +144,32 @@ select:focus-visible {
 
 .account-toggle:disabled {
   opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.delete-account-button {
+  color: #a52b2b;
+}
+
+.delete-account-button:hover:not(:disabled) {
+  background: rgb(165 43 43 / 12%);
+}
+
+.delete-account-button:disabled {
+  color: var(--border);
   cursor: not-allowed;
 }
 
@@ -199,6 +226,15 @@ select:focus-visible {
 
 .profile-dialog .error-message {
   color: #a52b2b;
+}
+
+.delete-dialog > p {
+  margin-bottom: 16px;
+}
+
+.danger-button {
+  border-color: #842424;
+  background: #a52b2b;
 }
 
 .profile-actions {
