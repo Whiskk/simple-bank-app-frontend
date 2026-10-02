@@ -4,6 +4,7 @@ import './App.css'
 
 const EMPTY_CREDENTIALS = { name: '', username: '', password: '' }
 const EMPTY_PROFILE = { name: '', username: '', currentPassword: '', newPassword: '', confirmPassword: '' }
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 async function readResponse(response, statusMessages = {}) {
   const data = await response.json().catch(() => null)
@@ -89,7 +90,7 @@ function App() {
       setStatus({ type: 'loading', message: 'Loading customers...' })
 
       try {
-        const response = await fetch('/api/customers', {
+        const response = await fetch(`${API_BASE_URL}/api/customers`, {
           headers: { Authorization: `Bearer ${token}` },
           signal: controller.signal,
         })
@@ -121,7 +122,7 @@ function App() {
       setStatus({ type: 'loading', message: 'Loading your accounts...' })
 
       try {
-        const response = await fetch('/api/accounts/me', {
+        const response = await fetch(`${API_BASE_URL}/api/accounts/me`, {
           headers: { Authorization: `Bearer ${token}` },
           signal: controller.signal,
         })
@@ -153,7 +154,7 @@ function App() {
       setProfileStatus({ type: 'loading', message: 'Loading profile...' })
 
       try {
-        const response = await fetch('/api/customers/me', {
+        const response = await fetch(`${API_BASE_URL}/api/customers/me`, {
           headers: { Authorization: `Bearer ${token}` },
           signal: controller.signal,
         })
@@ -235,7 +236,7 @@ function App() {
 
     try {
       if (isRegistering) {
-        const registerResponse = await fetch('/api/auth/register', {
+        const registerResponse = await fetch(`${API_BASE_URL}/api/auth/register`, {
           method: 'POST',
           headers,
           body: JSON.stringify({ ...loginDetails, name: credentials.name }),
@@ -243,7 +244,7 @@ function App() {
         await readResponse(registerResponse)
       }
 
-      const loginPath = loginMode === 'admin' ? '/api/auth/admin/login' : '/api/auth/login'
+      const loginPath = loginMode === 'admin' ? `${API_BASE_URL}/api/auth/admin/login` : `${API_BASE_URL}/api/auth/login`
       const loginResponse = await fetch(loginPath, {
         method: 'POST',
         headers,
@@ -319,7 +320,7 @@ function App() {
     setProfileStatus({ type: 'loading', message: 'Saving profile...' })
 
     try {
-      const response = await fetch('/api/customers/me', {
+      const response = await fetch(`${API_BASE_URL}/api/customers/me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -368,7 +369,7 @@ function App() {
     setAccountCreateStatus({ type: 'loading', message: 'Creating account...' })
 
     try {
-      const response = await fetch('/api/accounts', {
+      const response = await fetch(`${API_BASE_URL}/api/accounts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -426,7 +427,7 @@ function App() {
     setTransferStatus({ type: 'loading', message: 'Transferring...' })
 
     try {
-      const response = await fetch('/api/accounts/transfer', {
+      const response = await fetch(`${API_BASE_URL}/api/accounts/transfer`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -448,7 +449,7 @@ function App() {
     setStatus({ type: 'loading', message: 'Refreshing balances...' })
 
     try {
-      const response = await fetch('/api/accounts/me', {
+      const response = await fetch(`${API_BASE_URL}/api/accounts/me`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       const updatedAccounts = await readResponse(response)
@@ -470,7 +471,7 @@ function App() {
     setDeleteStatus({ type: 'loading', message: 'Deleting account...' })
 
     try {
-      const response = await fetch(`/api/accounts/${encodeURIComponent(deleteTarget.account.id)}`, {
+      const response = await fetch(`${API_BASE_URL}/api/accounts/${encodeURIComponent(deleteTarget.account.id)}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -515,7 +516,7 @@ function App() {
     }))
 
     try {
-      const response = await fetch(`/api/accounts?userId=${encodeURIComponent(customerId)}`, {
+      const response = await fetch(`${API_BASE_URL}/api/accounts?userId=${encodeURIComponent(customerId)}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       const accounts = await readResponse(response)
@@ -622,7 +623,7 @@ function App() {
                   setStatus({ type: 'idle', message: '' })
                 }}
               >
-                {isRegistering ? 'Use an existing account' : 'Create a test account'}
+                {isRegistering ? 'Use an existing account' : 'Create an account'}
               </button>
             )}
             <button
